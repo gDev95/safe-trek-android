@@ -60,7 +60,7 @@ public class LoginActivity extends AppCompatActivity {
         Call<OAuthToken> refreshAccessTokenCall = oAuthServer.getNewAccessToken(
                 refreshToken,
                 "gk1nFtbQr4pBpJD0rzAp3vaSi555sm4s",
-                "eWTSj_izMvD3nBJFXxkRDZF4aXDGKofYRZyzw_31oer31kuoY6-OVDs27nEHJu0B",
+                // CLIENT SECRET
                 "refresh_token"
 
         );
@@ -109,7 +109,7 @@ public class LoginActivity extends AppCompatActivity {
                 .baseUrl("https://login-sandbox.safetrek.io/")
                 .build();
 
- in       OAuthServerIntf oAuthServer = retrofit.create(OAuthServerIntf.class);
+        OAuthServerIntf oAuthServer = retrofit.create(OAuthServerIntf.class);
         Call<OAuthToken> requestTokenCall = oAuthServer.requestToken(
                 "authorization_code",
                 code,
