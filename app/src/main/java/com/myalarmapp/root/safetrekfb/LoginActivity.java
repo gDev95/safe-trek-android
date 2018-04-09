@@ -109,7 +109,7 @@ public class LoginActivity extends AppCompatActivity {
                 .baseUrl("https://login-sandbox.safetrek.io/")
                 .build();
 
-        OAuthServerIntf oAuthServer = retrofit.create(OAuthServerIntf.class);
+ in       OAuthServerIntf oAuthServer = retrofit.create(OAuthServerIntf.class);
         Call<OAuthToken> requestTokenCall = oAuthServer.requestToken(
                 "authorization_code",
                 code,
