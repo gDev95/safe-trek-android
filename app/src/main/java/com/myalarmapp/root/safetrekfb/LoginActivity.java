@@ -33,19 +33,30 @@ import retrofit2.converter.moshi.MoshiConverterFactory;
 
 public class LoginActivity extends AppCompatActivity {
 
+    // ************* CONSTANTS *************/
     private static final String TAG = "Login Activity";
     private static final String CLIENT_ID = "gk1nFtbQr4pBpJD0rzAp3vaSi555sm4s";
+    private static final String CLIENT_SECRET = "Your Secret HERE";
     private static final String SCOPE = "openid+phone+offline_access";
     private static final String REDIRECT_URI = "safetrekfb://callback";
     private static final String REDIRECT_URI_ROOT = "safetrekfb://";
     private static final String AUDIENCE = "https://api-sandbox.safetrek.io";
 
+    //********** ATTRIBUTES **************
     private String code;
     private String error;
 
     private CallbackManager callbackManager = CallbackManager.Factory.create();
 
+    //************ HTTP REQUESTS TO API ************
+
+    /* Request a new Access Token
+     * @params String RefreshToken
+     * @returns Nothing
+     */
     private void refreshAccessToken(String refreshToken) {
+
+        // Create Interceptor to log Request
         HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor()
                 .setLevel(HttpLoggingInterceptor.Level.BODY);
 
@@ -56,11 +67,12 @@ public class LoginActivity extends AppCompatActivity {
                 .client(client)
                 .baseUrl("https://login-sandbox.safetrek.io/")
                 .build();
+
         OAuthServerIntf oAuthServer = retrofit.create(OAuthServerIntf.class);
         Call<OAuthToken> refreshAccessTokenCall = oAuthServer.getNewAccessToken(
                 refreshToken,
-                "gk1nFtbQr4pBpJD0rzAp3vaSi555sm4s",
-                // CLIENT SECRET
+                CLIENT_ID,
+                CLIENT_SECRET,
                 "refresh_token"
 
         );
@@ -95,6 +107,10 @@ public class LoginActivity extends AppCompatActivity {
 
     }
 
+    /* get OAuth Token and save to Shared Preferences OAuthToken Storage
+     * @params none
+     * @return nothing
+     */
     private void getOAuthToken() {
 
 
@@ -110,13 +126,15 @@ public class LoginActivity extends AppCompatActivity {
                 .build();
 
         OAuthServerIntf oAuthServer = retrofit.create(OAuthServerIntf.class);
+
         Call<OAuthToken> requestTokenCall = oAuthServer.requestToken(
                 "authorization_code",
                 code,
-                "gk1nFtbQr4pBpJD0rzAp3vaSi555sm4s",
-                // CLIENT SECRET
-                "safetrekfb://callback"
+                CLIENT_ID,
+                CLIENT_SECRET,
+                REDIRECT_URI
         );
+
         requestTokenCall.enqueue(new Callback<OAuthToken>() {
             @Override
             public void onResponse(Call<OAuthToken> call, Response<OAuthToken> response) {
@@ -133,19 +151,31 @@ public class LoginActivity extends AppCompatActivity {
         });
     }
 
+    /* Request Authorization code and direct user to Authorization page (in Browser)
+     * @params none
+     * @return nothing
+     */
     private void makeAuthRequest() {
-        Log.e("makeAuthRequest", "opening browser");
-        HttpUrl authorizeUrl = HttpUrl.parse("https://account-sandbox.safetrek.io/authorize?scope=openid+phone+offline_access&response_type=code&redirect_uri=safetrekfb://callback") //
+
+        HttpUrl authorizeUrl = HttpUrl.parse("https://account-sandbox.safetrek.io/authorize")
                 .newBuilder()
                 .addQueryParameter("audience", AUDIENCE)
                 .addQueryParameter("client_id", CLIENT_ID)
+                .addQueryParameter("scope", SCOPE)
+                .addQueryParameter("response_type", code)
+                .addQueryParameter("redirect", REDIRECT_URI)
                 .build();
-        Log.e("End of Request", "the url is : " + String.valueOf(authorizeUrl.url()));
+
+
         Intent i = new Intent(Intent.ACTION_VIEW);
+
         i.setData(Uri.parse(String.valueOf(authorizeUrl.url())));
         i.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
         i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+        // start Browser Activity
         startActivity(i);
+        // and kill the this activity
         finish();
     }
 
@@ -162,48 +192,51 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // set preferences default value when Main Acitivity is launched for the first time ever
-        // does not get called afterwards again
 
-
+        // retrieve data from Intent that launched this Activity
+        // (only has data when another activity has launched this one)
         Uri data = getIntent().getData();
 
-        // if application started by Browser
+        // if application started by Browser data is NOT null
+        // check if the scheme from data matches our scheme
         if (data != null && !TextUtils.isEmpty(data.getScheme())) {
-            // check if URL fits data scheme
-//            Log.e("data scheme", data.getScheme());
-//            Log.e("Redirect URI Root", REDIRECT_URI_ROOT);
+
+            // *********** LOGS FOR DEBUGGING *********
+            //  Log.e("data scheme", data.getScheme());
+            //  Log.e("Redirect URI Root", REDIRECT_URI_ROOT);
+
+            // check if Incoming Deep Link matches our data scheme
             if (REDIRECT_URI_ROOT.equals(data.getScheme() + "://")) {
 
                 code = data.getQueryParameter("code");
                 error = data.getQueryParameter("error");
 
-                Log.e("onCreate:", "handle result of authorization with code :" + code);
+                // *********** LOGS FOR DEBUGGING *********
+                // Log.e("onCreate:", "handle result of authorization with code :" + code);
                 if (!TextUtils.isEmpty(code)) {
                     getOAuthToken();
                 }
                 if (!TextUtils.isEmpty(error)) {
-                    //a problem occurs, the user reject our granting request or something like tha
+                    //a problem occurs, the user reject our granting request e.g
+                    // exit App
                     Log.e("onCreate:", "an Error occurd during authorization:" + error);
-                    //then die
                     finish();
                 }
             }
-
-            Log.d("Check", "Done ");
-        } else {
+        }
+        else {
             //Manage the start application case:
             //If you don't have a token yet or if your token has expired , ask for it
             OAuthToken oauthToken = OAuthToken.Factory.create();
-            Log.e("getAccessToken()", "accessToken: " + oauthToken.getAccessToken());
-            Log.e("refreshToken", "refreshToken: " + oauthToken.getRefreshToken());
+
             if (oauthToken.getAccessToken() == null) {
                 //first case==first token request
                 if (oauthToken.getRefreshToken() == null) {
                     Log.d("onCreate:", "Launching authorization (first step)");
                     //first step of OAUth: the authorization step
                     makeAuthRequest();
-                } else {
+                }
+                else {
                     Log.d("onCreate:", "refreshing the token :" + oauthToken);
                     // get new Access Token
                     // use refresh Tokencd ..
@@ -212,15 +245,18 @@ public class LoginActivity extends AppCompatActivity {
 
                 }
             }
-            // Check is logged in with Facebook and permission for publishing has been obtained
+            // Check if we have Facebook Access Token
             // then launch main activity
-            // otherwise obtain Facebook permission
+            // otherwise obtain Facebook Access Token
         }
         if (AccessToken.getCurrentAccessToken() == null) {
             {
                 Log.e(TAG, "Obtain permission to publish to facebook");
+                // we want to post to user feed
                 List permissions = new ArrayList<String>();
                 permissions.add("publish_actions");
+
+                // Login Manager to handle the process
                 LoginManager lm = LoginManager.getInstance();
                 lm.logInWithPublishPermissions(LoginActivity.this, permissions);
                 lm.registerCallback(callbackManager, new FacebookCallback<LoginResult>() {
@@ -246,16 +282,19 @@ public class LoginActivity extends AppCompatActivity {
                 });
 
             }
-        } else if (AccessToken.getCurrentAccessToken().isExpired()) {
+        }
+        else if (AccessToken.getCurrentAccessToken().isExpired()) {
             AccessToken.refreshCurrentAccessTokenAsync();
 
-        } else {
+        }
+        else {
             Log.e(TAG, " Token available, just launch MainActivity");
             startMainActivity(true);
         }
     }
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        // Get result from Facebook Login Activity
         callbackManager.onActivityResult(requestCode, resultCode, data);
     }
 
