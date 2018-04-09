@@ -4,13 +4,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import android.system.ErrnoException;
 import android.text.TextUtils;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.facebook.AccessToken;
 import com.facebook.CallbackManager;
@@ -23,7 +20,6 @@ import com.myalarmapp.root.safetrekfb.models.OAuthToken;
 import java.util.ArrayList;
 import java.util.List;
 import com.myalarmapp.root.safetrekfb.retrofit.OAuthServerIntf;
-import com.myalarmapp.root.safetrekfb.retrofit.converters.StringConverterFactory;
 
 import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
@@ -34,12 +30,10 @@ import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.moshi.MoshiConverterFactory;
 
-import static android.content.Intent.ACTION_VIEW;
-
 
 public class LoginActivity extends AppCompatActivity {
-    private CallbackManager callbackManager = CallbackManager.Factory.create();
 
+    private static final String TAG = "Login Activity";
     private static final String CLIENT_ID = "gk1nFtbQr4pBpJD0rzAp3vaSi555sm4s";
     private static final String SCOPE = "openid+phone+offline_access";
     private static final String REDIRECT_URI = "safetrekfb://callback";
@@ -49,110 +43,8 @@ public class LoginActivity extends AppCompatActivity {
     private String code;
     private String error;
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+    private CallbackManager callbackManager = CallbackManager.Factory.create();
 
-        List permissions = new ArrayList<String>();
-        permissions.add("publish_actions");
-
-        Uri data = getIntent().getData();
-
-        // if application started by Browser
-        if (data != null && !TextUtils.isEmpty(data.getScheme())) {
-            // check if URL fits data scheme
-//            Log.e("data scheme", data.getScheme());
-//            Log.e("Redirect URI Root", REDIRECT_URI_ROOT);
-            if (REDIRECT_URI_ROOT.equals(data.getScheme()+ "://")) {
-
-                code = data.getQueryParameter("code");
-                error = data.getQueryParameter("error");
-
-                Log.e("onCreate:", "handle result of authorization with code :" + code);
-                if (!TextUtils.isEmpty(code)) {
-                    getOAuthToken();
-                }
-                if (!TextUtils.isEmpty(error)) {
-                    //a problem occurs, the user reject our granting request or something like tha
-                    Log.e("onCreate:", "an Error occurd during authorization:" + error);
-                    //then die
-                    finish();
-                }
-            }
-            Log.d("Check", "Done ");
-        } else {
-            //Manage the start application case:
-            //If you don't have a token yet or if your token has expired , ask for it
-            OAuthToken oauthToken = OAuthToken.Factory.create();
-            Log.e("getAccessToken()", "accessToken: " + oauthToken.getAccessToken());
-            Log.e("refreshToken", "refreshToken: " + oauthToken.getRefreshToken());
-            if (oauthToken == null
-                    || oauthToken.getAccessToken() == null) {
-                //first case==first token request
-                if (oauthToken == null || oauthToken.getRefreshToken() == null) {
-                    Log.d("onCreate:", "Launching authorization (first step)");
-                    //first step of OAUth: the authorization step
-                    makeAuthRequest();
-                } else {
-                    Log.d("onCreate:", "refreshing the token :" + oauthToken);
-                    // get new Access Token
-                    // use refresh Token
-                    String refreshToken = oauthToken.getRefreshToken();
-                    refreshAccessToken(refreshToken);
-                    finish();
-                }
-            }
-            //else just launch your MainActivity
-            else {
-                Log.e("onCreate:", " Token available, just launch MainActivity");
-                startMainActivity(true);
-            }
-        }
-
-
-//        String loggedInFacebook = AccessToken.getCurrentAccessToken().getToken();
-//        if (loggedInFacebook.length() >= 1) {
-//            Log.d("Test", AccessToken.getCurrentAccessToken().getToken());
-//            Uri data = getIntent().getData();
-//            if (data != null && !TextUtils.isEmpty(data.getScheme())) {
-//                if (REDIRECT_URI_ROOT.equals(data.getScheme())) {
-//                    code = data.getQueryParameter(CODE);
-//                    error=data.getQueryParameter(ERROR_CODE);
-//                    Log.e(TAG, "onCreate: handle result of authorization with code :" + code);
-//                    if (!TextUtils.isEmpty(code)) {
-//                        getTokenFormUrl();
-//                    }
-//                    if(!TextUtils.isEmpty(error)) {
-//                        //a problem occurs, the user reject our granting request or something like that
-//                        Toast.makeText(this, R.string.loginactivity_grantsfails_quit,Toast.LENGTH_LONG).show();
-//                        Log.e(TAG, "onCreate: handle result of authorization with error :" + error);
-//                        //then die
-//                        finish();
-//                    }
-//                }
-//            }
-//        } else {
-//            LoginManager lm = LoginManager.getInstance();
-//            lm.logInWithPublishPermissions(LoginActivity.this, permissions);
-//            lm.registerCallback(callbackManager, new FacebookCallback<LoginResult>() {
-//                @Override
-//                public void onSuccess(LoginResult loginResult) {
-//
-//
-//                }
-//
-//                @Override
-//                public void onCancel() {
-//
-//                }
-//
-//                @Override
-//                public void onError(FacebookException error) {
-//
-//                }
-//            });
-//        }
-    }
     private void refreshAccessToken(String refreshToken) {
         HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor()
                 .setLevel(HttpLoggingInterceptor.Level.BODY);
@@ -178,9 +70,14 @@ public class LoginActivity extends AppCompatActivity {
                 Log.e("Response:", response.code() + "  | body = " + response.body());
 
                 String newAccessToken = response.body().getAccessToken();
-                long expiresIn = response.body().getExpiresIn();
+                long expiresIn = response.body().getExpiresIn() * 100;
+                String expStr = Long.toString(expiresIn);
+                String nowStr = Long.toString(System.currentTimeMillis());
+                Log.e(TAG, "Expries In: " + expStr);
+                Log.e(TAG, "NOW: " + nowStr);
+                Log.e(TAG, nowStr + " + " + expStr + " = " + Long.toString(System.currentTimeMillis() + expiresIn));
                 long expiredAfter = System.currentTimeMillis() + expiresIn;
-                SharedPreferences sp = MyApplication.instance.getSharedPreferences("OAuthStorge", Context.MODE_PRIVATE);
+                SharedPreferences sp = MyApplication.instance.getSharedPreferences("OAuthStorage", Context.MODE_PRIVATE);
                 SharedPreferences.Editor spEditor = sp.edit();
                 spEditor.putString("accessToken", newAccessToken);
                 spEditor.putLong("expiredAfter", expiredAfter);
@@ -197,6 +94,7 @@ public class LoginActivity extends AppCompatActivity {
 
 
     }
+
     private void getOAuthToken() {
 
 
@@ -215,8 +113,8 @@ public class LoginActivity extends AppCompatActivity {
         Call<OAuthToken> requestTokenCall = oAuthServer.requestToken(
                 "authorization_code",
                 code,
-               "gk1nFtbQr4pBpJD0rzAp3vaSi555sm4s",
-                "eWTSj_izMvD3nBJFXxkRDZF4aXDGKofYRZyzw_31oer31kuoY6-OVDs27nEHJu0B",
+                "gk1nFtbQr4pBpJD0rzAp3vaSi555sm4s",
+                // CLIENT SECRET
                 "safetrekfb://callback"
         );
         requestTokenCall.enqueue(new Callback<OAuthToken>() {
@@ -225,7 +123,7 @@ public class LoginActivity extends AppCompatActivity {
                 Log.e("Response:", response.code() + "  | body = " + response.body());
                 //ok we have the token now store it
                 response.body().save();
-                startMainActivity(true);
+
             }
 
             @Override
@@ -236,7 +134,7 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void makeAuthRequest() {
-        Log.e("makeAuthRequest","opening browser");
+        Log.e("makeAuthRequest", "opening browser");
         HttpUrl authorizeUrl = HttpUrl.parse("https://account-sandbox.safetrek.io/authorize?scope=openid+phone+offline_access&response_type=code&redirect_uri=safetrekfb://callback") //
                 .newBuilder()
                 .addQueryParameter("audience", AUDIENCE)
@@ -259,6 +157,106 @@ public class LoginActivity extends AppCompatActivity {
         startActivity(i);
         //you can die so
         finish();
+    }
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        // set preferences default value when Main Acitivity is launched for the first time ever
+        // does not get called afterwards again
+
+
+        Uri data = getIntent().getData();
+
+        // if application started by Browser
+        if (data != null && !TextUtils.isEmpty(data.getScheme())) {
+            // check if URL fits data scheme
+//            Log.e("data scheme", data.getScheme());
+//            Log.e("Redirect URI Root", REDIRECT_URI_ROOT);
+            if (REDIRECT_URI_ROOT.equals(data.getScheme() + "://")) {
+
+                code = data.getQueryParameter("code");
+                error = data.getQueryParameter("error");
+
+                Log.e("onCreate:", "handle result of authorization with code :" + code);
+                if (!TextUtils.isEmpty(code)) {
+                    getOAuthToken();
+                }
+                if (!TextUtils.isEmpty(error)) {
+                    //a problem occurs, the user reject our granting request or something like tha
+                    Log.e("onCreate:", "an Error occurd during authorization:" + error);
+                    //then die
+                    finish();
+                }
+            }
+
+            Log.d("Check", "Done ");
+        } else {
+            //Manage the start application case:
+            //If you don't have a token yet or if your token has expired , ask for it
+            OAuthToken oauthToken = OAuthToken.Factory.create();
+            Log.e("getAccessToken()", "accessToken: " + oauthToken.getAccessToken());
+            Log.e("refreshToken", "refreshToken: " + oauthToken.getRefreshToken());
+            if (oauthToken.getAccessToken() == null) {
+                //first case==first token request
+                if (oauthToken.getRefreshToken() == null) {
+                    Log.d("onCreate:", "Launching authorization (first step)");
+                    //first step of OAUth: the authorization step
+                    makeAuthRequest();
+                } else {
+                    Log.d("onCreate:", "refreshing the token :" + oauthToken);
+                    // get new Access Token
+                    // use refresh Tokencd ..
+                    String refreshToken = oauthToken.getRefreshToken();
+                    refreshAccessToken(refreshToken);
+
+                }
+            }
+            // Check is logged in with Facebook and permission for publishing has been obtained
+            // then launch main activity
+            // otherwise obtain Facebook permission
+        }
+        if (AccessToken.getCurrentAccessToken() == null) {
+            {
+                Log.e(TAG, "Obtain permission to publish to facebook");
+                List permissions = new ArrayList<String>();
+                permissions.add("publish_actions");
+                LoginManager lm = LoginManager.getInstance();
+                lm.logInWithPublishPermissions(LoginActivity.this, permissions);
+                lm.registerCallback(callbackManager, new FacebookCallback<LoginResult>() {
+                    @Override
+                    public void onSuccess(LoginResult loginResult) {
+                        Log.e(TAG, "Successful login and permission granted");
+                        startMainActivity(true);
+
+                    }
+
+                    @Override
+                    public void onCancel() {
+                        Log.e(TAG, "Cancelled Login by user");
+                        // needs appropriate handling for UX
+                        finish();
+                    }
+
+                    @Override
+                    public void onError(FacebookException error) {
+                        Log.e(TAG, "Error occured: " + error.toString());
+                        finish();
+                    }
+                });
+
+            }
+        } else if (AccessToken.getCurrentAccessToken().isExpired()) {
+            AccessToken.refreshCurrentAccessTokenAsync();
+
+        } else {
+            Log.e(TAG, " Token available, just launch MainActivity");
+            startMainActivity(true);
+        }
+    }
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        callbackManager.onActivityResult(requestCode, resultCode, data);
     }
 
 }

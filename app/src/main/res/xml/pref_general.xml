@@ -1,0 +1,23 @@
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <SwitchPreference
+        android:defaultValue="false"
+        android:key="shareLocation"
+        android:summary="@string/pref_description_share_location"
+        android:title="@string/pref_title_share_location" />
+    <EditTextPreference
+        android:defaultValue="@string/pref_post_message_default"
+        android:key="message"
+        android:selectAllOnFocus="true"
+        android:singleLine="false"
+        android:summary="@string/pref_description_post_message"
+        android:title="@string/pref_title_post_message" />
+
+    <!-- NOTE: EditTextPreference accepts EditText attributes. -->
+    <!-- NOTE: EditTextPreference's summary should be set to its value by the activity code. -->
+
+    <!-- NOTE: Hide buttons to simplify the UI. Users can touch outside the dialog to
+         dismiss it. -->
+    <!-- NOTE: ListPreference's summary should be set to its value by the activity code. -->
+
+</PreferenceScreen>
