@@ -33,4 +33,20 @@ public class Geolocation {
         this.latitude = latitude;
         this.longitude = longitude;
     }
+    // GETTER
+    /* get latitude
+     * @params none
+     * @return double latitude
+     */
+    public double getLatitude(){
+        return this.latitude;
+    }
+    // GETTER
+    /* get longitude
+     * @params none
+     * @return double longitude
+     */
+    public double getLongitude(){
+        return this.longitude;
+    }
 }

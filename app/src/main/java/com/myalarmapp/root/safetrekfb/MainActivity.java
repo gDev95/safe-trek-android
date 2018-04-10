@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.graphics.Typeface;
 import android.location.Location;
 import android.location.LocationListener;
@@ -53,11 +54,9 @@ public class MainActivity extends AppCompatActivity {
     // ************* UI COMPONENTS ********
     FloatingActionButton fab;
 
-    TextView txvResult;
+    Button settingsBtn;
 
     View mLayout;
-
-    Button settingsBtn;
 
 
     // ************ USER APP SETTINGS ************
@@ -67,8 +66,10 @@ public class MainActivity extends AppCompatActivity {
     private OAuthToken oauthToken;
 
     // ************ GEOLOCATION
-    private Geolocation geolocation;
+    private Geolocation geolocation = new Geolocation(0.0,0.0);
 
+    // *********** ALARM CREATED *********
+    private boolean alarmCreated;
     //************* PERMISSION REQUESTS
     /* ask for permission to obtain device location
      * @params none
@@ -152,7 +153,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<Alarm> call, retrofit2.Response<Alarm> response) {
                 Log.e("Response:", response.code() + "  | body = " + response.body());
-
+                alarmCreated = true;
             }
 
             @Override
@@ -183,8 +184,6 @@ public class MainActivity extends AppCompatActivity {
         // It will not be gc'd as long as this instance is kept referenced
 
 
-        txvResult = (TextView) findViewById(R.id.txtView);
-
 
         // Get FontAwesome Fonts
         Typeface font = Typeface.createFromAsset( getAssets(), "fonts/fontawesome-webfont.ttf" );
@@ -212,12 +211,17 @@ public class MainActivity extends AppCompatActivity {
             Log.e(TAG, "Now get location and proceed");
 
             LocationManager lm = (LocationManager) getSystemService(LOCATION_SERVICE);
+            Location getLastLocation = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+            double latitude = getLastLocation.getLongitude();
+            double longitude = getLastLocation.getLatitude();
+            geolocation.setGeolocation(latitude,longitude);
+
             lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, new LocationListener() {
 
                 @Override
                 public void onStatusChanged(String arg0, int arg1, Bundle arg2) {
                     // TODO Auto-generated method stub
-
+                    Log.e(TAG,"status change");
                 }
 
                 @Override
@@ -229,15 +233,16 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onProviderDisabled(String arg0) {
                     // TODO Auto-generated method stub
+                    Log.e(TAG,"disabled");
 
                 }
 
                 @Override
                 public void onLocationChanged(Location arg0) {
-                    txvResult.setText("Latitude: "+arg0.getLatitude()+" \nLongitude: "+arg0.getLongitude());
                     double latitude = (Double) arg0.getLatitude();
                     double longitude = (Double) arg0.getLongitude();
-                    geolocation.setGeolocation(latitude, longitude);
+                    geolocation.setGeolocation(latitude,longitude);
+
                 }
             });
         }
@@ -245,7 +250,6 @@ public class MainActivity extends AppCompatActivity {
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-
                 Snackbar.make(view, "Alarm Triggered", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
                 Bundle params = new Bundle();
@@ -254,28 +258,55 @@ public class MainActivity extends AppCompatActivity {
                 // ********* LOGGING FOR DEBUGGING ***********
                 //Log.e(TAG, "sharelocation:" + Boolean.toString(shareLocation));
                 //Log.e(TAG, "Customize post message " + postMessage);
-                params.putString("message", postMessage);
-                /* send HTTP POST Request to Safe Trek */
-                //Log.e(TAG, "Creating an alarm request");
-                createAlarmRequest();
-                /* make the API call to Facebook*/
-                new GraphRequest(
-                        AccessToken.getCurrentAccessToken(),
-                        "/me/feed",
-                        params,
-                        HttpMethod.POST,
-                        new GraphRequest.Callback() {
-                            public void onCompleted(GraphResponse response) {
-                                /* log successful */
-                                Log.d(TAG, "Successful Facebook Post " + response.toString());
+                if(shareLocation){
+
+                    params.putString("message", postMessage + "\n Location: "
+                            + Double.toString(geolocation.getLatitude()) + ", " + Double.toString(geolocation.getLongitude()));
+                    /* send HTTP POST Request to Safe Trek */
+                    //Log.e(TAG, "Creating an alarm request");
+                    createAlarmRequest();
+                    /* make the API call to Facebook*/
+                    new GraphRequest(
+                            AccessToken.getCurrentAccessToken(),
+                            "/me/feed",
+                            params,
+                            HttpMethod.POST,
+                            new GraphRequest.Callback() {
+                                public void onCompleted(GraphResponse response) {
+                                    /* log successful */
+                                    Log.d(TAG, "Successful Facebook Post " + response.toString());
+                                }
                             }
-                        }
-                ).executeAsync();
+                    ).executeAsync();
+
+
+                }
+                else {
+
+                    params.putString("message", postMessage);
+                    /* send HTTP POST Request to Safe Trek */
+                    //Log.e(TAG, "Creating an alarm request");
+                    createAlarmRequest();
+                    /* make the API call to Facebook*/
+                    new GraphRequest(
+                            AccessToken.getCurrentAccessToken(),
+                            "/me/feed",
+                            params,
+                            HttpMethod.POST,
+                            new GraphRequest.Callback() {
+                                public void onCompleted(GraphResponse response) {
+                                    /* log successful */
+                                    Log.d(TAG, "Successful Facebook Post " + response.toString());
+                                }
+                            }
+                    ).executeAsync();
+
+
+                }
+                }
 
 
 
-
-            }
         });
 
     }
