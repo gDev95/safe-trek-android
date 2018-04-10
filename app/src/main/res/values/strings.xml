@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">SafeTrekFb</string>
+    <string name="app_name">Emergency Service App</string>
     <string name="facebook_app_id">162738351211636</string>
     <string name="fb_login_protocol_scheme">fb423623411393868</string>
     <string name="title_activity_settings">Settings</string>
