@@ -9,17 +9,17 @@ import android.graphics.Typeface;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.net.Uri;
-import android.os.AsyncTask;
 import android.preference.PreferenceManager;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-
+import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.TextView;
 
 import com.facebook.AccessToken;
 import com.facebook.GraphRequest;
@@ -29,41 +29,28 @@ import com.facebook.HttpMethod;
 import com.myalarmapp.root.safetrekfb.models.Alarm;
 import com.myalarmapp.root.safetrekfb.models.EmergencyServices;
 import com.myalarmapp.root.safetrekfb.models.Geolocation;
-import com.myalarmapp.root.safetrekfb.models.Alarm;
 import com.myalarmapp.root.safetrekfb.models.OAuthToken;
 import com.myalarmapp.root.safetrekfb.retrofit.APIClient;
-import com.myalarmapp.root.safetrekfb.retrofit.OAuthServerIntf;
-
-
-import android.text.method.ScrollingMovementMethod;
-import android.util.Log;
-import android.view.View;
-import android.widget.Button;
-import android.widget.TextView;
 
 import java.io.IOException;
 
-import javax.net.ssl.HttpsURLConnection;
-
 import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
-import okhttp3.Response;
 import okhttp3.Request;
 import okhttp3.logging.HttpLoggingInterceptor;
+
+
 import retrofit2.Call;
 import retrofit2.Callback;
-
 import retrofit2.Retrofit;
 import retrofit2.converter.moshi.MoshiConverterFactory;
 
-import static android.content.Intent.ACTION_VIEW;
-
 public class MainActivity extends AppCompatActivity {
 
-    // Constants
+    // ************ CONSTANTS *****************
     private static final String TAG = "Main Activity";
 
-    // Layout
+    // ************* UI COMPONENTS ********
     FloatingActionButton fab;
 
     TextView txvResult;
@@ -72,16 +59,21 @@ public class MainActivity extends AppCompatActivity {
 
     Button settingsBtn;
 
-    // App-specific user settings
+
+    // ************ USER APP SETTINGS ************
     private  SharedPreferences sp = MyApplication.instance.getSharedPreferences("Settings", MODE_PRIVATE);
-    // Authentication specific;
+
+    // ************ AUTHENTICATION ************
     private OAuthToken oauthToken;
-    // Location specific
-    private double latitude = 0 ;
-    private double longitude = 0;
 
+    // ************ GEOLOCATION
+    private Geolocation geolocation;
 
-    // ask for permission to get location
+    //************* PERMISSION REQUESTS
+    /* ask for permission to obtain device location
+     * @params none
+     * @return nothing
+     */
     public void requestLocationPermission(){
 
             // No explanation needed; request the permission
@@ -90,10 +82,13 @@ public class MainActivity extends AppCompatActivity {
                     0);
 
         }
-
+    /* get Result of permission(s) request
+     * @params int requestCode, String[] permissions, int[] grantResults
+     * @return nothing
+     */
     @Override
     public void onRequestPermissionsResult(int requestCode,
-                                           String permissions[], int[] grantResults) {
+                                           String[] permissions, int[] grantResults) {
         switch (requestCode) {
             case 0: {
                 // If request is cancelled, the result arrays are empty.
@@ -117,7 +112,13 @@ public class MainActivity extends AppCompatActivity {
 
         }
     }
-    private void sendAlarm() {
+    //************** HTTP REQUEST ************
+    // send a HTTP POST Request to Safe Trek API to create an alarm
+    /*
+     * @params none
+     * @return nothing
+     */
+    private void createAlarmRequest() {
         String accessToken = oauthToken.getAccessToken();
         HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor()
                 .setLevel(HttpLoggingInterceptor.Level.BODY);
@@ -134,9 +135,8 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         OkHttpClient client = builder.build();
-        // create objects for Alarm
+        // create emergency services object for Alarm
         EmergencyServices emServices = new EmergencyServices();
-        Geolocation geolocation = new Geolocation(latitude,longitude);
 
         Alarm alarm = new Alarm (emServices, geolocation);
         Retrofit retrofit = new Retrofit.Builder()
@@ -235,9 +235,9 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onLocationChanged(Location arg0) {
                     txvResult.setText("Latitude: "+arg0.getLatitude()+" \nLongitude: "+arg0.getLongitude());
-                    latitude = (Double) arg0.getLatitude();
-                    longitude = (Double) arg0.getLongitude();
-
+                    double latitude = (Double) arg0.getLatitude();
+                    double longitude = (Double) arg0.getLongitude();
+                    geolocation.setGeolocation(latitude, longitude);
                 }
             });
         }
@@ -251,12 +251,13 @@ public class MainActivity extends AppCompatActivity {
                 Bundle params = new Bundle();
                 Boolean shareLocation = sp.getBoolean("shareLocation", false);
                 String postMessage = sp.getString("message", null);
-                Log.e(TAG, "sharelocation:" + Boolean.toString(shareLocation));
-                Log.e(TAG, "Customize post message " + postMessage);
+                // ********* LOGGING FOR DEBUGGING ***********
+                //Log.e(TAG, "sharelocation:" + Boolean.toString(shareLocation));
+                //Log.e(TAG, "Customize post message " + postMessage);
                 params.putString("message", postMessage);
                 /* send HTTP POST Request to Safe Trek */
-                Log.e(TAG, "Sending Alarm");
-                sendAlarm();
+                //Log.e(TAG, "Creating an alarm request");
+                createAlarmRequest();
                 /* make the API call to Facebook*/
                 new GraphRequest(
                         AccessToken.getCurrentAccessToken(),
@@ -265,8 +266,8 @@ public class MainActivity extends AppCompatActivity {
                         HttpMethod.POST,
                         new GraphRequest.Callback() {
                             public void onCompleted(GraphResponse response) {
-                                /* handle the result */
-                                Log.e(TAG, "Successful Post " + response.toString());
+                                /* log successful */
+                                Log.d(TAG, "Successful Facebook Post " + response.toString());
                             }
                         }
                 ).executeAsync();

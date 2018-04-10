@@ -11,7 +11,7 @@ import retrofit2.http.POST;
 
 public interface APIClient {
 
-    // create Alarm
+    // Send HTTP POST Request to Safe Trek API to create an alarm
     @POST("alarms")
     Call<Alarm> createAlarm(@Body Alarm alarm);
 

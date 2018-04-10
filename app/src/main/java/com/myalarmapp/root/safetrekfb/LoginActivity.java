@@ -36,7 +36,7 @@ public class LoginActivity extends AppCompatActivity {
     // ************* CONSTANTS *************/
     private static final String TAG = "Login Activity";
     private static final String CLIENT_ID = "gk1nFtbQr4pBpJD0rzAp3vaSi555sm4s";
-    private static final String CLIENT_SECRET = "Your Secret HERE";
+    private static final String CLIENT_SECRET = "eWTSj_izMvD3nBJFXxkRDZF4aXDGKofYRZyzw_31oer31kuoY6-OVDs27nEHJu0B";
     private static final String SCOPE = "openid+phone+offline_access";
     private static final String REDIRECT_URI = "safetrekfb://callback";
     private static final String REDIRECT_URI_ROOT = "safetrekfb://";

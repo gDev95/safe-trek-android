@@ -22,4 +22,15 @@ public class Geolocation {
         this.latitude = latitude;
         this.longitude = longitude;
     }
+
+    //*********** MEMBER FUNCTIONS **********
+    // SETTER
+    /* set the coordinates (using latitude and longitude)
+     * @params double latitude, double longitude
+     * @return nothing
+     */
+    public void setGeolocation(double latitude, double longitude){
+        this.latitude = latitude;
+        this.longitude = longitude;
+    }
 }

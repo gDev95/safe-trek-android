@@ -16,7 +16,7 @@ public class Alarm {
      * @params EmergencyServices, Geolocation
      * @return Alarm
      */
-    public Alarm(EmergencyServices emServices, Geolocation geolocation){
+    public Alarm (EmergencyServices emServices, Geolocation geolocation){
         this.geolocation = geolocation;
         this.emServices = emServices;
     }
