@@ -7,6 +7,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.location.Address;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -20,6 +21,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.location.Geocoder;
 import android.widget.TextView;
 
 import com.facebook.AccessToken;
@@ -34,6 +36,8 @@ import com.myalarmapp.root.safetrekfb.models.OAuthToken;
 import com.myalarmapp.root.safetrekfb.retrofit.APIClient;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Locale;
 
 import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
@@ -262,9 +266,29 @@ public class MainActivity extends AppCompatActivity {
                 //Log.e(TAG, "sharelocation:" + Boolean.toString(shareLocation));
                 //Log.e(TAG, "Customize post message " + postMessage);
                 if(shareLocation){
+                    Geocoder geoc = new Geocoder(getApplicationContext(), Locale.getDefault());
+                    double latitude = geolocation.getLatitude();
+                    double longitude = geolocation.getLongitude();
+                    List <Address> addresses;
+                    StringBuilder sb = new StringBuilder();
+                    String fullLocation = "";
+                    try {
+                       addresses = geoc.getFromLocation(latitude, longitude, 1);
+                        if (addresses.size() > 0) {
+                            Address address = addresses.get(0);
+                            for(int i = 0; i < address.getMaxAddressLineIndex(); i++)
+                            sb.append(address.getAddressLine(i)).append(",");
+                            sb.append(address.getLocality()).append(",");
+                            sb.append(address.getPostalCode()).append(",");
+                            sb.append(address.getCountryName());
+                            fullLocation = sb.toString();
+                        }
+                    } catch (IOException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
 
-                    params.putString("message", postMessage + "\n Location: "
-                            + Double.toString(geolocation.getLatitude()) + ", " + Double.toString(geolocation.getLongitude()));
+                    params.putString("message", postMessage + "\n Location: " + fullLocation);
                     /* send HTTP POST Request to Safe Trek */
                     //Log.e(TAG, "Creating an alarm request");
                     createAlarmRequest();
