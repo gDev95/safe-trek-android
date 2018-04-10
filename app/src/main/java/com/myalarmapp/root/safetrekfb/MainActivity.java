@@ -278,8 +278,6 @@ public class MainActivity extends AppCompatActivity {
                             Address address = addresses.get(0);
                             for(int i = 0; i < address.getMaxAddressLineIndex(); i++)
                             sb.append(address.getAddressLine(i)).append(",");
-                            sb.append(address.getLocality()).append(",");
-                            sb.append(address.getPostalCode()).append(",");
                             sb.append(address.getCountryName());
                             fullLocation = sb.toString();
                         }
