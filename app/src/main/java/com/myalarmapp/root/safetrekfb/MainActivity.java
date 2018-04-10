@@ -209,13 +209,16 @@ public class MainActivity extends AppCompatActivity {
 
         } else {
             Log.e(TAG, "Now get location and proceed");
-
+            // Create a location manager
             LocationManager lm = (LocationManager) getSystemService(LOCATION_SERVICE);
+
+            // get current GPS locations latitude & longitude
             Location getLastLocation = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
             double latitude = getLastLocation.getLongitude();
             double longitude = getLastLocation.getLatitude();
+            // update the geolocation of user
             geolocation.setGeolocation(latitude,longitude);
-
+            // listen for updates
             lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, new LocationListener() {
 
                 @Override
@@ -278,8 +281,6 @@ public class MainActivity extends AppCompatActivity {
                                 }
                             }
                     ).executeAsync();
-
-
                 }
                 else {
 
@@ -300,20 +301,8 @@ public class MainActivity extends AppCompatActivity {
                                 }
                             }
                     ).executeAsync();
-
-
                 }
-                }
-
-
-
+            }
         });
-
     }
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-
-    }
-
-
 }
