@@ -289,7 +289,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-
+    //************ LIFE CYCLE METHODS **************************
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

@@ -1,3 +1,19 @@
+/*
+
+    This was created by Paul Meyer on April 4th, 2018.
+    This code should not be redistributed by any third-party
+    if not otherwise stated or declared by the creator of this code itself.
+    For any questions mail paulmeyerber@gmail.com
+ */
+
+/*
+    This LoginActivity first activity to be launched when App launches.
+    This activity's sole purpose it to manage the required logins, authorizations and tokens required for this app.
+    Tokens obtained by this activity:
+        - Facebook Token
+        - Safe Trek Token
+
+ */
 package com.myalarmapp.root.safetrekfb;
 
 import android.content.Context;
@@ -114,7 +130,7 @@ public class LoginActivity extends AppCompatActivity {
 
     }
 
-    /* get OAuth Token and save to Shared Preferences OAuthToken Storage
+    /* get Safe Trek OAuth Token and save to Shared Preferences OAuthToken Storage
      * @params none
      * @return nothing
      */
@@ -161,7 +177,7 @@ public class LoginActivity extends AppCompatActivity {
         });
     }
 
-    /* Request Authorization code and direct user to Authorization page (in Browser)
+    /* Request Authorization code from Safe Trek and direct user to Authorization page (in Browser)
      * @params none
      * @return nothing
      */
@@ -195,7 +211,7 @@ public class LoginActivity extends AppCompatActivity {
         //you can die so
         finish();
     }
-
+//************ LIFE CYCLE METHODS *************
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
