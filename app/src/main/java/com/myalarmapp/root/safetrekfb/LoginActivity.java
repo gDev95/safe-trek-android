@@ -1,18 +1,22 @@
 package com.myalarmapp.root.safetrekfb;
 
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.facebook.AccessToken;
 import com.facebook.CallbackManager;
 import com.facebook.FacebookCallback;
 import com.facebook.FacebookException;
+import com.facebook.FacebookSdk;
 import com.facebook.login.LoginManager;
 import com.facebook.login.LoginResult;
 import com.myalarmapp.root.safetrekfb.models.OAuthToken;
@@ -61,7 +65,8 @@ public class LoginActivity extends AppCompatActivity {
                 .setLevel(HttpLoggingInterceptor.Level.BODY);
 
         OkHttpClient client = new OkHttpClient.Builder().addInterceptor(interceptor).build();
-
+        // build request
+        // add converter for serialization/deserialization of objects
         Retrofit retrofit = new Retrofit.Builder()
                 .addConverterFactory(MoshiConverterFactory.create())
                 .client(client)
@@ -69,6 +74,7 @@ public class LoginActivity extends AppCompatActivity {
                 .build();
 
         OAuthServerIntf oAuthServer = retrofit.create(OAuthServerIntf.class);
+
         Call<OAuthToken> refreshAccessTokenCall = oAuthServer.getNewAccessToken(
                 refreshToken,
                 CLIENT_ID,
@@ -79,16 +85,17 @@ public class LoginActivity extends AppCompatActivity {
         refreshAccessTokenCall.enqueue(new Callback<OAuthToken>() {
             @Override
             public void onResponse(Call<OAuthToken> call, Response<OAuthToken> response) {
-                Log.e("Response:", response.code() + "  | body = " + response.body());
+                //************** LOG FOR DEBUGGING **********
+                //Log.e("Response:", response.code() + "  | body = " + response.body());
 
+                // handle response for refresh token
+                // extract new access Token
                 String newAccessToken = response.body().getAccessToken();
+                // calculate when token expires in milliseconds
                 long expiresIn = response.body().getExpiresIn() * 100;
-                String expStr = Long.toString(expiresIn);
-                String nowStr = Long.toString(System.currentTimeMillis());
-                Log.e(TAG, "Expries In: " + expStr);
-                Log.e(TAG, "NOW: " + nowStr);
-                Log.e(TAG, nowStr + " + " + expStr + " = " + Long.toString(System.currentTimeMillis() + expiresIn));
+                // calculate the time when it has expired
                 long expiredAfter = System.currentTimeMillis() + expiresIn;
+                // store accessToken and expiration for token in Shared Preferences
                 SharedPreferences sp = MyApplication.instance.getSharedPreferences("OAuthStorage", Context.MODE_PRIVATE);
                 SharedPreferences.Editor spEditor = sp.edit();
                 spEditor.putString("accessToken", newAccessToken);
@@ -147,6 +154,9 @@ public class LoginActivity extends AppCompatActivity {
             @Override
             public void onFailure(Call<OAuthToken> call, Throwable t) {
                 Log.e("Error with Request", "The call getRequestTokenFormCall failed", t);
+                // needs UI handling
+                // then stop app
+                finish();
             }
         });
     }
@@ -157,13 +167,10 @@ public class LoginActivity extends AppCompatActivity {
      */
     private void makeAuthRequest() {
 
-        HttpUrl authorizeUrl = HttpUrl.parse("https://account-sandbox.safetrek.io/authorize")
+        HttpUrl authorizeUrl = HttpUrl.parse("https://account-sandbox.safetrek.io/authorize?scope=openid+phone+offline_access&response_type=code&redirect_uri=safetrekfb://callback")
                 .newBuilder()
                 .addQueryParameter("audience", AUDIENCE)
                 .addQueryParameter("client_id", CLIENT_ID)
-                .addQueryParameter("scope", SCOPE)
-                .addQueryParameter("response_type", code)
-                .addQueryParameter("redirect", REDIRECT_URI)
                 .build();
 
 
@@ -219,7 +226,7 @@ public class LoginActivity extends AppCompatActivity {
                 if (!TextUtils.isEmpty(error)) {
                     //a problem occurs, the user reject our granting request e.g
                     // exit App
-                    Log.e("onCreate:", "an Error occurd during authorization:" + error);
+                    Log.e(TAG, "an Error occurd during authorization:" + error);
                     finish();
                 }
             }
@@ -262,22 +269,54 @@ public class LoginActivity extends AppCompatActivity {
                 lm.registerCallback(callbackManager, new FacebookCallback<LoginResult>() {
                     @Override
                     public void onSuccess(LoginResult loginResult) {
-                        Log.e(TAG, "Successful login and permission granted");
+                        Log.d(TAG, "Successful login and permission granted");
                         startMainActivity(true);
 
                     }
 
                     @Override
                     public void onCancel() {
-                        Log.e(TAG, "Cancelled Login by user");
-                        // needs appropriate handling for UX
-                        finish();
+                        Log.w(TAG, "Cancelled Login by user");
+                        AlertDialog.Builder builder = new AlertDialog.Builder(LoginActivity.this);
+
+                        builder.setMessage("This app requires connection with Facebook, please try again logging in.")
+                                .setTitle("Facebook Login Cancelled");
+                        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                //perform any action
+                                Toast.makeText(getApplicationContext(), "OK", Toast.LENGTH_SHORT).show();
+                                finish();
+                            }
+                        });
+
+                        AlertDialog dialog = builder.create();
+
+                        dialog.show();
+
                     }
 
                     @Override
                     public void onError(FacebookException error) {
                         Log.e(TAG, "Error occured: " + error.toString());
-                        finish();
+                        AlertDialog.Builder builder = new AlertDialog.Builder(getApplicationContext());
+
+                        builder.setMessage("There was a problem signing into Facebook. " +
+                                "This app requires connection with Facebook, please try again logging in.")
+                                .setTitle("Facebook Login Error");
+                        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                //perform any action
+                                Toast.makeText(getApplicationContext(), "OK", Toast.LENGTH_SHORT).show();
+                                finish();
+                            }
+                        });
+
+                        AlertDialog dialog = builder.create();
+                        dialog.show();
+
+
                     }
                 });
 
@@ -296,6 +335,8 @@ public class LoginActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         // Get result from Facebook Login Activity
         callbackManager.onActivityResult(requestCode, resultCode, data);
+        String CLIENT_TOKEN = "7f0af9c6fad86c47b1d241f4dc735b85";
+        FacebookSdk.setClientToken(CLIENT_TOKEN);
     }
 
 }
